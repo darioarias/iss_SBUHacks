@@ -1,18 +1,26 @@
-{% extends "public/templates/public_template.html" %} {% block title %} Home {%
-endblock %} {% block main %}
-<div class="container">
-  <div class="row">
-    <div class="col">
-      <h1>Home</h1>
-    </div>
-  </div>
-</div>
+{% extends "public/templates/public_template.html" %} 
+{% block prloaded_scripts %}
+  <script src="https://cdn.amcharts.com/lib/4/core.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/maps.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/geodata/worldLow.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/themes/dataviz.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script> 
+{% endblock %}
 
-{% endblock %} {% block script %}
+{% block costumed_styles %} 
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map_styles.css') }}"/> 
+{% endblock %}
 
-<script>
-  // alert("Template inheritance is awesone!")
-  console.log("Index has loaded!");
-</script>
+{% block title %} Home {% endblock %} 
+
+{% block main %}
+  <div id="chartdiv"></div>
+  <script src="app.js"></script>
+{% endblock %} 
+
+
+{% block script %}
+
+  <script src="{{ url_for('static', filename='js/app.js') }}""></script>
 
 {% endblock %}

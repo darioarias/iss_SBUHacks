@@ -8,6 +8,8 @@
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
 
+    <!-- Preloaded js files -->
+    {% block prloaded_scripts %}{% endblock %}
     <!-- Import the Bootstrap stylesheet -->
     <link
       rel="stylesheet"
@@ -18,6 +20,8 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <!-- customed styles sheets -->
+    {% block costumed_styles %}{% endblock %}
 
     <title>{% block title %}{% endblock %}</title>
   </head>
