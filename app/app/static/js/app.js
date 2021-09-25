@@ -44,25 +44,35 @@ class Map {
     this.imageSeriesTemplate;
   }
 
-  rotateTo(lon, lat) {
-    if (this.animation) this.animation.stop();
+  rotateTo(cords) {
+    // if (!cords) return;
+    // if (this.animation) this.animation.stop();
 
-    let x_y = this.chart.projection.convert(lat, lon);
-    console.log(x_y);
-
-    // this.animation = this.chart.animate(
-    //   [
-    //     {
-    //       property: "deltaLongitude",
-    //       to: lon,
-    //     },
-    //     {
-    //       property: "deltaLatitude",
-    //       to: lat,
-    //     },
-    //   ],
-    //   2000
+    // console.log("Before", cords);
+    // cords.latitude = parseInt(cords.latitude);
+    // cords.longitude = parseInt(cords.longitude);
+    // let x_y = this.chart.projection.convert(cords);
+    // let coords = this.chart.svgPointToGeo(x_y);
+    // // let coords = cords;
+    // console.log("after", coords);
+    // console.log(
+    //   this.imageSeries.data[0].longitude,
+    //   this.imageSeries.data[0].latitude
     // );
+
+    this.animation = this.chart.animate(
+      [
+        {
+          property: "deltaLongitude",
+          to: -this.imageSeries.data[0].longitude,
+        },
+        {
+          property: "deltaLatitude",
+          to: -this.imageSeries.data[0].latitude,
+        },
+      ],
+      2000
+    );
   }
 
   createMarker() {
@@ -124,7 +134,7 @@ am4core.ready(() => {
   map.respondToPing("update_cords", (cords) => {
     if (!cords) return;
     map.placeMarker(parseFloat(cords.latitude), parseFloat(cords.longitude));
-    map.rotateTo(parseFloat(cords.longitude), parseFloat(cords.latitude));
+    map.rotateTo(cords);
   });
 
   //calls the iss api every second
