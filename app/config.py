@@ -11,7 +11,7 @@ class Config(object):
   DB_PASSWORD = "example"
 
   IMAGE_UPLOADS = f"{os.getcwd()}/app/static/img/uploads"#"/Users/darioarias/Desktop/github/nyc_floods/app/app/static/img/uploads"
-
+  STATIC_IMG = f'{os.getcwd()}/app/static/img/'
   ALLOWED_IMAGE_EXTENSIONS = ["JPEG", "JPG", "PNG", "GIF"]
   MAX_CONTENT_LENGTH = 50 * 1024 * 1024
   CLIENT_IMAGES= f"{os.getcwd()}/app/static/client/img"

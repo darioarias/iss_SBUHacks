@@ -25,6 +25,15 @@ def overhead():
 def news():
     return render_template("public/news.html")
 
+@app.route("/img/<name>")
+def getimg(name):
+    try:
+        print("sending file")
+        return send_from_directory(app.config["STATIC_IMG"], filename=name, as_attachment=True)
+    except FileNotFoundError:
+        abort(404);
+
+
 
 @app.before_first_request
 def before_first_request_func():

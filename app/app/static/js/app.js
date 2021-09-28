@@ -1,15 +1,17 @@
 class Map {
   constructor() {
+    //creates the map and loads it.
     this.chart = am4core.create("chartdiv", am4maps.MapChart);
     this.chart.geodata = am4geodata_worldLow;
 
     this.chart.projection = new am4maps.projections.Orthographic();
     this.chart.panBehavior = "rotateLongLat";
 
-    this.chart.padding(20, 20, 20, 20);
+    this.chart.padding(10, 10, 10, 10); // sets the padding of the map, i.e how close to the end of the screen is the map
 
-    this.chart.seriesContainer.draggable = false;
-    this.chart.maxZoomLevel = 1.5;
+    this.chart.seriesContainer.draggable = false; // makes it so the map cannot be dragged
+    this.chart.maxZoomLevel = 1.7; // sets how much the user can zoom
+    // this.chart.minZoomLevel = 1.1; // sets how much the user can zoom out
 
     this.polygonSeries = this.chart.series.push(new am4maps.MapPolygonSeries());
     this.polygonSeries.useGeodata = true;
@@ -24,12 +26,13 @@ class Map {
     this.graticuleSeries = this.chart.series.push(
       new am4maps.GraticuleSeries()
     );
+
     this.graticuleSeries.mapLines.template.line.stroke =
-      am4core.color("#FDFEFE");
-    this.graticuleSeries.mapLines.template.line.strokeOpacity = 0.08;
+      am4core.color("#FDFEFE"); //sets the ccolor for the map line
+    this.graticuleSeries.mapLines.template.line.strokeOpacity = 0.08; // sets the opacity for the lines
     this.graticuleSeries.fitExtent = false;
 
-    this.chart.backgroundSeries.mapPolygons.template.polygon.fillOpacity = 0.5;
+    this.chart.backgroundSeries.mapPolygons.template.polygon.fillOpacity = 0.5; //sets the color for the continent
     this.chart.backgroundSeries.mapPolygons.template.polygon.fill =
       am4core.color("#5DADE2");
 
@@ -37,29 +40,27 @@ class Map {
     this.hs = this.polygonTemplate.states.create("hover");
     this.hs.properties.fill = this.chart.colors.getIndex(0).brighten(-0.5);
 
+    //set up native events
+    this.respondToPing("down", () => {
+      this.active = true;
+      if (this.animation) this.animation.stop();
+    }); // triggers evertime the map is clicked or pressed
+
+    this.respondToPing("up", () => {
+      this.active = false;
+    }); //trigger everytime the map is realased
+
     //working props
-    this.animation;
-    this.marker;
-    this.imageSeries;
-    this.imageSeriesTemplate;
+    this.animation; //keep track of the animation object
+    this.marker; //keep track of the iss icon
+    this.imageSeries; //marker helper
+    this.imageSeriesTemplate; //maker helper
+
+    this.active = false; //keep track of whether or not the map is being pressed
   }
 
-  rotateTo(cords) {
-    // if (!cords) return;
-    // if (this.animation) this.animation.stop();
-
-    // console.log("Before", cords);
-    // cords.latitude = parseInt(cords.latitude);
-    // cords.longitude = parseInt(cords.longitude);
-    // let x_y = this.chart.projection.convert(cords);
-    // let coords = this.chart.svgPointToGeo(x_y);
-    // // let coords = cords;
-    // console.log("after", coords);
-    // console.log(
-    //   this.imageSeries.data[0].longitude,
-    //   this.imageSeries.data[0].latitude
-    // );
-
+  rotateTo() {
+    if (this.animation) this.animation.stop(); // stops an animation if its in the middle of happening
     this.animation = this.chart.animate(
       [
         {
@@ -72,7 +73,7 @@ class Map {
         },
       ],
       2000
-    );
+    ); //changes the latitude and longitude of the map to where the iss icon is
   }
 
   createMarker() {
@@ -82,8 +83,7 @@ class Map {
     // Create image
     this.imageSeriesTemplate = this.imageSeries.mapImages.template;
     let marker = this.imageSeriesTemplate.createChild(am4core.Image);
-    marker.href =
-      "https://img.icons8.com/external-vitaliy-gorbachev-lineal-color-vitaly-gorbachev/60/000000/external-space-station-space-vitaliy-gorbachev-lineal-color-vitaly-gorbachev-1.png";
+    marker.href = "img/iss_icon.png";
     marker.width = 40;
     marker.height = 40;
     marker.nonScaling = true;
@@ -95,10 +95,10 @@ class Map {
     this.imageSeriesTemplate.propertyFields.latitude = "latitude";
     this.imageSeriesTemplate.propertyFields.longitude = "longitude";
 
-    return marker;
+    return marker; //creates a marker and loads it, noticed that it has no lat lon to place the marker, so it will put it at 0,0 (to left corner)
   }
 
-  placeMarker(lat, lon) {
+  async placeMarker(lat, lon) {
     if (!this.marker) this.marker = this.createMarker();
     this.imageSeries.data = [
       {
@@ -107,17 +107,38 @@ class Map {
         title: "International Space Station",
       },
     ];
+    //places the marker on the map, if the marker is not created, then it creates one, then places it on the 'right' location on the map. Right location meaing the lat and lon passed in
   }
+
   pingEvent(event = "", data = "") {
-    this.chart.seriesContainer.events.dispatchImmediately(event, data);
+    this.chart.seriesContainer.events.dispatchImmediately(event, data); //creates a event on the map, if there is no listener for even, nothing will happen
   }
 
   respondToPing(event, callback) {
-    this.chart.seriesContainer.events.on(event, callback);
+    this.chart.seriesContainer.events.on(event, callback); //sets a listener for an event to the map and a call back defining what happens when the event is trigger. Nothing will happen if the event is not trigger.
   }
-}
 
-//calls teh ISS api for data
+  shouldUpdate(update_cords) {
+    const center = this.chart._centerGeoPoint;
+    const offset_accpted = 20;
+    if (
+      Math.abs(
+        parseInt(update_cords.latitude, 10) - parseInt(center.latitude, 10)
+      ) >= offset_accpted
+    )
+      return true;
+    else if (
+      Math.abs(
+        parseInt(update_cords.longitude, 10) - parseInt(center.longitude, 10)
+      ) >= offset_accpted
+    )
+      return true;
+
+    return false; //looks at the map center and at the iss and decides whether or not to move the map.
+  }
+} //class for map, notice that each object is created AND placed into view.
+
+//calls teh ISS api for data, parses the information into json, then returns it
 async function retrive_iss_info() {
   return fetch("http://api.open-notify.org/iss-now.json")
     .then((response) => response.json())
@@ -126,315 +147,27 @@ async function retrive_iss_info() {
     });
 }
 
+//runs when the map is ready
 am4core.ready(() => {
+  //sets the animation, makes sure that we can use it.
   am4core.useTheme(am4themes_animated);
-  const map = new Map();
+  const map = new Map(); // creates and loads the map
 
   //sets up event to tell the map when to update
-  map.respondToPing("update_cords", (cords) => {
-    if (!cords) return;
+  map.respondToPing("update_cords", async (cords) => {
+    if (!cords) return; // returns if there are no cordinates
+    //updates the location of the icons representing the international space station
     map.placeMarker(parseFloat(cords.latitude), parseFloat(cords.longitude));
-    map.rotateTo(cords);
+
+    //if the iss is not in view, rotate the map
+    if (!map.active && map.shouldUpdate(cords)) {
+      map.rotateTo();
+    }
   });
 
-  //calls the iss api every second
+  //calls the iss api every 1.5  second
   setInterval(async function () {
-    let info = await retrive_iss_info();
-    map.pingEvent("update_cords", info.iss_position);
-  }, 1000);
-
-  // map.rotateTo(100, 0);
-  // map.placeMarker(40.73061, -73.935242);
-  // map.placeMarker(40.73061, -40.935242);
-  // Set projection
-  // chart.projection = new am4maps.projections.Orthographic();
-  // chart.panBehavior = "rotateLongLat";
-  // chart.deltaLatitude = -10;
-  // chart.deltaLongitude = 70;
-  // chart.padding(20, 20, 20, 20);
-
-  //disable zooms
-  // chart.seriesContainer.draggable = false;
-  // chart.maxZoomLevel = 1.5;
-
-  // limits vertical rotation
-  // chart.adapter.add("deltaLatitude", function (delatLatitude) {
-  //   return am4core.math.fitToRange(delatLatitude, -90, 90);
-  // });
-
-  // Create map polygon series
-  // var polygonSeries = chart.series.push(new am4maps.MapPolygonSeries());
-
-  // Make map load polygon (like country names) data from GeoJSON
-  // polygonSeries.useGeodata = true;
-
-  // plotting places
-  // var imageSeries = chart.series.push(new am4maps.MapImageSeries());
-  // var mapImage = imageSeries.mapImages.template;
-  // var mapMarker = mapImage.createChild(am4core.Sprite);
-  // mapMarker.path =
-  //   "M4 12 A12 12 0 0 1 28 12 C28 20, 16 32, 16 32 C16 32, 4 20 4 12 M11 12 A5 5 0 0 0 21 12 A5 5 0 0 0 11 12 Z";
-
-  // mapMarker.width = 32;
-  // mapMarker.height = 32;
-  // mapMarker.scale = 0.7;
-  // mapMarker.fill = am4core.color("#F4D03F");
-  // mapMarker.fillOpacity = 0.8;
-  // mapMarker.horizontalCenter = "middle";
-  // mapMarker.verticalCenter = "bottom";
-
-  // var marker = imageSeries.mapImages.create();
-  // marker.tooltipText = "ISS";
-
-  // chart.seriesContainer.events.on(
-  //   "update_iss_position",
-  //   function (iss_postion) {
-  //     // if (update_count == 100) {
-  //     rotateTo(chart, iss_postion, animation, 2000, can_draw);
-  //     // update_count = 0;
-  //     // }
-  //     // update_count++;
-
-  //     let pos = {
-  //       latitude: parseFloat(iss_postion.latitude),
-  //       longitude: parseFloat(iss_postion.longitude),
-  //     };
-  //     marker.latitude = pos.latitude;
-  //     marker.longitude = pos.longitude;
-  //   }
-  // );
-
-  // //calls teh ISS api for data
-  // async function retrive_iss_info() {
-  //   return fetch("http://api.open-notify.org/iss-now.json")
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       return data;
-  //     });
-  // }
-
-  //calls events to update the map
-  // setInterval(async function () {
-  //   info = await retrive_iss_info();
-  //   chart.seriesContainer.events.dispatchImmediately(
-  //     "update_iss_position",
-  //     info.iss_position
-  //   );
-  // }, 500);
-
-  // // Configure series
-  // var polygonTemplate = polygonSeries.mapPolygons.template;
-  // polygonTemplate.tooltipText = "{name}";
-  // polygonTemplate.fill = am4core.color("#47c78a");
-  // polygonTemplate.stroke = am4core.color("#454a58");
-  // polygonTemplate.strokeWidth = 0.2;
-
-  // var graticuleSeries = chart.series.push(new am4maps.GraticuleSeries());
-  // graticuleSeries.mapLines.template.line.stroke = am4core.color("#FDFEFE");
-  // graticuleSeries.mapLines.template.line.strokeOpacity = 0.08;
-  // graticuleSeries.fitExtent = false;
-
-  // chart.backgroundSeries.mapPolygons.template.polygon.fillOpacity = 0.5;
-  // chart.backgroundSeries.mapPolygons.template.polygon.fill =
-  //   am4core.color("#5DADE2");
-
-  // // Create hover state and set alternative fill color
-  // var hs = polygonTemplate.states.create("hover");
-  // hs.properties.fill = chart.colors.getIndex(0).brighten(-0.5);
-
-  //animaltion
-  // let animation;
-  // setTimeout(function () {
-  //   animation = chart.animate(
-  //     { property: "deltaLongitude", to: 100000 },
-  //     20000000
-  //   );
-  // }, 500);
-
-  // chart.seriesContainer.events.on("down", function () {
-  //   console.log("NOT DRAWABLE");
-  //   can_draw = false;
-  //   if (animation) {
-  //     animation.stop();
-  //     // animation.pause();
-  //   }
-  // });
-
-  // chart.seriesContainer.events.on("up", function () {
-  //   console.log("DRAWABLE");
-  //   can_draw = true;
-
-  //   if (animation) animation.stop();
-  // });
-
-  // chart.seriesContainer.events.on("up", function () {
-  //   // animation.resume();
-  //   if (animation) {
-  //     setTimeout(function () {
-  //       animation = chart.animate(
-  //         { property: "deltaLongitude", to: 100000 },
-  //         20000000
-  //       );
-  //     }, 500);
-  //   }
-  // });
+    let info = await retrive_iss_info(); //makes a call to teh api
+    map.pingEvent("update_cords", info.iss_position); // calls the map to update itself and passes the information
+  }, 1500);
 });
-///###########################################################################################
-// alert("HERE");
-// am4core.ready(function () {
-//   var animation;
-//   function rotateTo(delta) {
-//     if (animation) {
-//       animation.stop();
-//     }
-//     animation = chart.animate(
-//       {
-//         property: "deltaLongitude",
-//         to: delta,
-//       },
-//       1000
-//     );
-//   }
-//   // Themes begin
-//   // am4core.useTheme(am4themes_dataviz);
-//   // am4core.useTheme(am4themes_animated);
-//   // Themes end
-
-//   var chart = am4core.create("chartdiv", am4maps.MapChart);
-
-//   // Set map definition
-//   chart.geodata = am4geodata_worldLow;
-
-//   // Set projection
-//   chart.projection = new am4maps.projections.Orthographic();
-//   chart.panBehavior = "rotateLongLat";
-//   chart.deltaLatitude = -10;
-//   chart.deltaLongitude = 70;
-//   chart.padding(20, 20, 20, 20);
-
-//   //disable zooms
-//   chart.seriesContainer.draggable = false;
-//   chart.maxZoomLevel = 1.5;
-
-//   // chart.minZoomLevel = 4;
-
-//   // chart.homeZoomLevel = 1;
-//   // chart.homeGeoPoint = {
-//   //   latitude: 40.73061,
-//   //   longitude: -73.935242,
-//   // };
-//   // chart.events.on("ready", function (ev) {
-//   //   chart.zoomToMapObject(polygonSeries.getPolygonById("US"));
-//   // });
-
-//   // limits vertical rotation
-//   chart.adapter.add("deltaLatitude", function (delatLatitude) {
-//     return am4core.math.fitToRange(delatLatitude, -90, 90);
-//   });
-
-//   // Create map polygon series
-//   var polygonSeries = chart.series.push(new am4maps.MapPolygonSeries());
-
-//   // Make map load polygon (like country names) data from GeoJSON
-//   polygonSeries.useGeodata = true;
-
-//   //plotting places
-//   var imageSeries = chart.series.push(new am4maps.MapImageSeries());
-//   var mapImage = imageSeries.mapImages.template;
-//   var mapMarker = mapImage.createChild(am4core.Sprite);
-//   mapMarker.path =
-//     "M4 12 A12 12 0 0 1 28 12 C28 20, 16 32, 16 32 C16 32, 4 20 4 12 M11 12 A5 5 0 0 0 21 12 A5 5 0 0 0 11 12 Z";
-
-//   mapMarker.width = 32;
-//   mapMarker.height = 32;
-//   mapMarker.scale = 0.7;
-//   mapMarker.fill = am4core.color("#F4D03F");
-//   mapMarker.fillOpacity = 0.8;
-//   mapMarker.horizontalCenter = "middle";
-//   mapMarker.verticalCenter = "bottom";
-
-//   var marker = imageSeries.mapImages.create();
-//   marker.tooltipText = "ISS";
-
-//   chart.seriesContainer.events.on(
-//     "update_iss_position",
-//     function (iss_postion) {
-//       rotateTo(parseInt(iss_postion.longitude) - 30);
-
-//       let pos = {
-//         latitude: parseFloat(iss_postion.latitude),
-//         longitude: parseFloat(iss_postion.longitude),
-//       };
-//       marker.latitude = pos.latitude;
-//       marker.longitude = pos.longitude;
-//     }
-//   );
-
-//   //calls teh ISS api for data
-//   async function retrive_iss_info() {
-//     return fetch("http://api.open-notify.org/iss-now.json")
-//       .then((response) => response.json())
-//       .then((data) => {
-//         return data;
-//       });
-//   }
-
-//   //calls events to update the map
-//   setInterval(async function () {
-//     info = await retrive_iss_info();
-//     console.log("updating home");
-//     // chart.goHome();
-//     chart.seriesContainer.events.dispatchImmediately(
-//       "update_iss_position",
-//       info.iss_position
-//     );
-//   }, 500);
-
-//   // Configure series
-//   var polygonTemplate = polygonSeries.mapPolygons.template;
-//   polygonTemplate.tooltipText = "{name}";
-//   polygonTemplate.fill = am4core.color("#47c78a");
-//   polygonTemplate.stroke = am4core.color("#454a58");
-//   polygonTemplate.strokeWidth = 0.2;
-
-//   var graticuleSeries = chart.series.push(new am4maps.GraticuleSeries());
-//   graticuleSeries.mapLines.template.line.stroke = am4core.color("#FDFEFE");
-//   graticuleSeries.mapLines.template.line.strokeOpacity = 0.08;
-//   graticuleSeries.fitExtent = false;
-
-//   chart.backgroundSeries.mapPolygons.template.polygon.fillOpacity = 0.5;
-//   chart.backgroundSeries.mapPolygons.template.polygon.fill =
-//     am4core.color("#5DADE2");
-
-//   // Create hover state and set alternative fill color
-//   var hs = polygonTemplate.states.create("hover");
-//   hs.properties.fill = chart.colors.getIndex(0).brighten(-0.5);
-
-//   //animaltion
-//   // let animation;
-//   // setTimeout(function () {
-//   //   animation = chart.animate(
-//   //     { property: "deltaLongitude", to: 100000 },
-//   //     20000000
-//   //   );
-//   // }, 500);
-
-//   chart.seriesContainer.events.on("down", function () {
-//     if (animation) {
-//       // animation.stop();
-//       // animation.pause();
-//     }
-//   });
-
-//   // chart.seriesContainer.events.on("up", function () {
-//   //   // animation.resume();
-//   //   if (animation) {
-//   //     setTimeout(function () {
-//   //       animation = chart.animate(
-//   //         { property: "deltaLongitude", to: 100000 },
-//   //         20000000
-//   //       );
-//   //     }, 500);
-//   //   }
-//   // });
-// }); // end am4core.ready()
